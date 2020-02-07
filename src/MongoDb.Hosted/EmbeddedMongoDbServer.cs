@@ -10,9 +10,9 @@ using System.Text;
 using System.Threading;
 using MongoDB.Driver;
 
-namespace MongoDB.Embedded
+namespace MongoDB.Hosted
 {
-    public class EmbeddedMongoDbServer : IDisposable
+    public class HostedMongoDbServer : IDisposable
     {
         private Process _process;
 
@@ -23,32 +23,43 @@ namespace MongoDB.Embedded
         private readonly string _name;
         private readonly int _processEndTimeout;
         private readonly ManualResetEventSlim _gate = new ManualResetEventSlim(false);
+        private readonly bool _persistent;
 
-        public EmbeddedMongoDbServer(string logPath = null)
+        public HostedMongoDbServer(string logPath = null, string dbPath = null, bool persistent = false)
         {
             _port = GetRandomUnusedPort();
 
             _processEndTimeout = 10000;
+            _persistent = persistent;
 
+            if (dbPath == null)
+            {
+                _name = RandomFileName(7);
+                _path = Path.Combine(Path.GetTempPath(), RandomFileName(12));
+
+
+            }
+            else
+            {
+                _name = "mongo";
+                _path = Path.GetFullPath(dbPath);
+            }
             KillMongoDbProcesses(_processEndTimeout);
-
-            _name = RandomFileName(7);
-            _path = Path.Combine(Path.GetTempPath(), RandomFileName(12));
             Directory.CreateDirectory(_path);
 
-            using (var resourceStream = typeof(EmbeddedMongoDbServer).Assembly.GetManifestResourceStream(typeof(EmbeddedMongoDbServer), "mongod.exe"))
+            using (var resourceStream = typeof(HostedMongoDbServer).Assembly.GetManifestResourceStream(typeof(HostedMongoDbServer), "mongod.exe"))
             using (var fileStream = new FileStream(Path.Combine(_path, _name + ".exe"), FileMode.Create, FileAccess.Write))
             {
                 resourceStream.CopyTo(fileStream);
             }
 
-            using (var resourceStream = typeof(EmbeddedMongoDbServer).Assembly.GetManifestResourceStream(typeof(EmbeddedMongoDbServer), "libeay32.dll"))
+            using (var resourceStream = typeof(HostedMongoDbServer).Assembly.GetManifestResourceStream(typeof(HostedMongoDbServer), "libeay32.dll"))
             using (var fileStream = new FileStream(Path.Combine(_path, "libeay32.dll"), FileMode.Create, FileAccess.Write))
             {
                 resourceStream.CopyTo(fileStream);
             }
 
-            using (var resourceStream = typeof(EmbeddedMongoDbServer).Assembly.GetManifestResourceStream(typeof(EmbeddedMongoDbServer), "ssleay32.dll"))
+            using (var resourceStream = typeof(HostedMongoDbServer).Assembly.GetManifestResourceStream(typeof(HostedMongoDbServer), "ssleay32.dll"))
             using (var fileStream = new FileStream(Path.Combine(_path, "ssleay32.dll"), FileMode.Create, FileAccess.Write))
             {
                 resourceStream.CopyTo(fileStream);
@@ -84,8 +95,9 @@ namespace MongoDB.Embedded
 
             _process.BeginOutputReadLine();
             _process.BeginErrorReadLine();
-            
+
             _gate.Wait(10000);
+
         }
 
         public MongoClientSettings Settings
@@ -149,9 +161,16 @@ namespace MongoDB.Embedded
                 _job.Dispose();
                 _job = null;
             }
+            if (!_persistent)
+            {
 
-            if (Directory.Exists(_path))
-                Directory.Delete(_path, true);
+                if (Directory.Exists(_path))
+                {
+                    Directory.Delete(_path, true);
+
+                }
+            }
+
         }
 
         public void Dispose()
@@ -159,7 +178,7 @@ namespace MongoDB.Embedded
             Dispose(true);
         }
 
-        ~EmbeddedMongoDbServer()
+        ~HostedMongoDbServer()
         {
             Dispose(false);
         }

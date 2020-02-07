@@ -1,7 +1,9 @@
 ﻿using MongoDB.Driver;
+using MongoDB.Hosted;
 using NUnit.Framework;
+using System.Threading.Tasks;
 
-namespace MongoDB.Embedded.Tests
+namespace MongoDB.Hosted.Tests
 {
     [TestFixture]
     public class BasicTests
@@ -9,7 +11,7 @@ namespace MongoDB.Embedded.Tests
         [Test]
         public void BasicStartupTests()
         {
-            using (var embedded = new EmbeddedMongoDbServer())
+            using (var embedded = new HostedMongoDbServer())
             {
                 var client = embedded.Client;
             }
@@ -22,14 +24,14 @@ namespace MongoDB.Embedded.Tests
         }
 
         [Test]
-        public async void ReadWriteTest()
+        public async Task ReadWriteTest()
         {
-            using (var embedded = new EmbeddedMongoDbServer())
+            using (var embedded = new HostedMongoDbServer())
             {
                 var client = embedded.Client;
                 var db = client.GetDatabase("test");
                 var collection = db.GetCollection<TestClass>("col");
-                await collection.InsertOneAsync(new TestClass() {Id = 12345, TestValue = "Hello world."});
+                await collection.InsertOneAsync(new TestClass() { Id = 12345, TestValue = "Hello world." });
                 var retrieved = await collection.Find(x => x.Id == 12345).SingleOrDefaultAsync();
                 Assert.NotNull(retrieved, "No object came back from the database.");
                 Assert.AreEqual("Hello world.", retrieved.TestValue, "Unexpected test value came back.");
@@ -37,10 +39,10 @@ namespace MongoDB.Embedded.Tests
         }
 
         [Test]
-        public async void DualServerReadWriteTest()
+        public async Task DualServerReadWriteTest()
         {
-            using (var embedded1 = new EmbeddedMongoDbServer())
-            using (var embedded2 = new EmbeddedMongoDbServer())
+            using (var embedded1 = new HostedMongoDbServer())
+            using (var embedded2 = new HostedMongoDbServer())
             {
                 var client1 = embedded1.Client;
                 var db1 = client1.GetDatabase("test");
@@ -58,6 +60,43 @@ namespace MongoDB.Embedded.Tests
                 Assert.NotNull(retrieved2, "No object came back from the database.");
                 Assert.AreEqual("Hello world.", retrieved2.TestValue, "Unexpected test value came back.");
             }
+        }
+
+        [Test]
+        public async Task PersistedServedKeepsData()
+        {
+            try
+            {
+
+
+                using (var embedded = new HostedMongoDbServer(dbPath: "./db", persistent: true))
+                {
+                    var client1 = embedded.Client;
+                    var db1 = client1.GetDatabase("test");
+                    var collection1 = db1.GetCollection<TestClass>("col");
+                    await collection1.InsertOneAsync(new TestClass() { Id = 12345, TestValue = "Hello world." });
+                    System.Threading.Thread.Sleep(1000);// time for the journal to be stored
+                }
+
+                using (var embedded = new HostedMongoDbServer(dbPath: "./db", persistent: true))
+                {
+                    var client1 = embedded.Client;
+                    var db1 = client1.GetDatabase("test");
+                    var collection1 = db1.GetCollection<TestClass>("col");
+                    var retrieved1 = await collection1.Find(x => x.Id == 12345).SingleOrDefaultAsync();
+                    Assert.NotNull(retrieved1, "No object came back from the database.");
+                    Assert.AreEqual("Hello world.", retrieved1.TestValue, "Unexpected test value came back.");
+
+                }
+            }
+
+            finally
+            {
+                using (var embedded = new HostedMongoDbServer(dbPath: "./db", persistent: false))
+                {
+                }
+            }
+
         }
     }
 }

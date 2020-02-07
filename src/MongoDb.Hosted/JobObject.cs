@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace MongoDB.Embedded
+namespace MongoDB.Hosted
 {
     public enum JobObjectInfoType
     {
@@ -28,26 +28,26 @@ namespace MongoDB.Embedded
     [StructLayout(LayoutKind.Sequential)]
     struct JOBOBJECT_BASIC_LIMIT_INFORMATION
     {
-        public Int64 PerProcessUserTimeLimit;
-        public Int64 PerJobUserTimeLimit;
-        public Int16 LimitFlags;
-        public UInt32 MinimumWorkingSetSize;
-        public UInt32 MaximumWorkingSetSize;
-        public Int16 ActiveProcessLimit;
-        public Int64 Affinity;
-        public Int16 PriorityClass;
-        public Int16 SchedulingClass;
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public short LimitFlags;
+        public uint MinimumWorkingSetSize;
+        public uint MaximumWorkingSetSize;
+        public short ActiveProcessLimit;
+        public long Affinity;
+        public short PriorityClass;
+        public short SchedulingClass;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     struct IO_COUNTERS
     {
-        public UInt64 ReadOperationCount;
-        public UInt64 WriteOperationCount;
-        public UInt64 OtherOperationCount;
-        public UInt64 ReadTransferCount;
-        public UInt64 WriteTransferCount;
-        public UInt64 OtherTransferCount;
+        public ulong ReadOperationCount;
+        public ulong WriteOperationCount;
+        public ulong OtherOperationCount;
+        public ulong ReadTransferCount;
+        public ulong WriteTransferCount;
+        public ulong OtherTransferCount;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -55,10 +55,10 @@ namespace MongoDB.Embedded
     {
         public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
         public IO_COUNTERS IoInfo;
-        public UInt32 ProcessMemoryLimit;
-        public UInt32 JobMemoryLimit;
-        public UInt32 PeakProcessMemoryUsed;
-        public UInt32 PeakJobMemoryUsed;
+        public uint ProcessMemoryLimit;
+        public uint JobMemoryLimit;
+        public uint PeakProcessMemoryUsed;
+        public uint PeakJobMemoryUsed;
     }
 
     public class Job : IDisposable
@@ -81,7 +81,7 @@ namespace MongoDB.Embedded
 
         public Job()
         {
-            this._handle = CreateJobObject(null, null);
+            _handle = CreateJobObject(null, null);
 
             JOBOBJECT_BASIC_LIMIT_INFORMATION info = new JOBOBJECT_BASIC_LIMIT_INFORMATION();
             info.LimitFlags = 0x2000;
@@ -93,7 +93,7 @@ namespace MongoDB.Embedded
             IntPtr extendedInfoPtr = Marshal.AllocHGlobal(length);
             Marshal.StructureToPtr(extendedInfo, extendedInfoPtr, false);
 
-            if (!SetInformationJobObject(this._handle, JobObjectInfoType.ExtendedLimitInformation, extendedInfoPtr, (uint)length))
+            if (!SetInformationJobObject(_handle, JobObjectInfoType.ExtendedLimitInformation, extendedInfoPtr, (uint)length))
                 throw new Exception(string.Format("Unable to set information.  Error: {0}", Marshal.GetLastWin32Error()));
         }
 
@@ -109,24 +109,24 @@ namespace MongoDB.Embedded
 
         private void Dispose(bool disposing)
         {
-            if (this._disposed)
+            if (_disposed)
                 return;
 
             if (disposing) { }
 
             Close();
-            this._disposed = true;
+            _disposed = true;
         }
 
         public void Close()
         {
-            CloseHandle(this._handle);
-            this._handle = IntPtr.Zero;
+            CloseHandle(_handle);
+            _handle = IntPtr.Zero;
         }
 
         public bool AddProcess(IntPtr handle)
         {
-            return AssignProcessToJobObject(this._handle, handle);
+            return AssignProcessToJobObject(_handle, handle);
         }
 
     }
