@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageId>MongoDB.Hosted</PackageId>
+    <Authors>David Najar</Authors>
+    <Company />
+    <Product>MongoDB.Hosted</Product>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="libeay32.dll" />
+    <None Remove="mongod.exe" />
+    <None Remove="ssleay32.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="libeay32.dll" />
+    <EmbeddedResource Include="mongod.exe" />
+    <EmbeddedResource Include="ssleay32.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Bson" Version="2.10.1" />
+    <PackageReference Include="MongoDB.Driver" Version="2.10.1" />
+    <PackageReference Include="MongoDB.Driver.Core" Version="2.10.1" />
+  </ItemGroup>
+</Project>
