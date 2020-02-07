@@ -14,6 +14,6 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MongoDb.Embedded\MongoDB.Hosted.csproj" />
+    <ProjectReference Include="..\MongoDb.Hosted\MongoDB.Hosted.csproj" />
   </ItemGroup>
 </Project>
